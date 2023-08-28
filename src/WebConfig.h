@@ -20,10 +20,24 @@
 #ifndef _WEBCONFIG_H_
 #define _WEBCONFIG_H_
 
-#include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 
+#define NAME_LENGTH (32)
+
+#define SIGNATURE_LENGTH (1)
+#define OPERATION_MODE_LENGTH (1)
+#define AP_NAME_LENGTH (32)
+#define AP_PASSWORD_LENGTH (32)
+#define AP_CHANNEL_LENGTH (1)
+#define SSID_LENGTH (32)
+#define PASSWORD_LENGTH (32)
+#define UDP_PORT_LENGTH (1)
+#define TCP_PORT_LENGTH (1)
+#define WEB_PORT_LENGTH (1)
+#define WEB_LOGIN_LENGTH (16)
+#define WEB_PASSWORD_LENGTH (16)
+#define BASE64_AUTH_LENGTH (64)
 
 class WebConfig
 {
@@ -63,10 +77,10 @@ class WebConfig
 
 		// Application Name
 		// Shown on the webserver interface.
-		char name[32];
-		char webLogin[16];
-		char webPassword[16];
-		char base64Auth[64];
+		char name[NAME_LENGTH];
+		char webLogin[WEB_LOGIN_LENGTH];
+		char webPassword[WEB_PASSWORD_LENGTH];
+		char base64Auth[BASE64_AUTH_LENGTH];
 		int webPort;
 
 		// When it is in AP mode, it will not connect to any router.
@@ -75,13 +89,13 @@ class WebConfig
 		long startMillis;
 
 		// AP info in case it's in AP mode.
-		char apName[32];
-		char apPassword[32];
+		char apName[AP_NAME_LENGTH];
+		char apPassword[AP_PASSWORD_LENGTH];
 		byte apChannel;
 
 		// Router info in case it's not in AP mode.
-		char ssid[32];
-		char password[32];
+		char ssid[SSID_LENGTH];
+		char password[PASSWORD_LENGTH];
 
 		// Ports different than zero will be listening for connections and packets
 		int udpPort;

@@ -19,6 +19,21 @@
 
 #include <WebConfig.h>
 
+#include <EEPROM.h>
+
+#define SIGNATURE_LOCATION (0)
+#define OPERATION_MODE_LOCATION (SIGNATURE_LOCATION+SIGNATURE_LENGTH)
+#define AP_NAME_LOCATION (OPERATION_MODE_LOCATION+OPERATION_MODE_LENGTH)
+#define AP_PASSWORD_LOCATION (AP_NAME_LOCATION+AP_NAME_LOCATION)
+#define AP_CHANNEL_LOCATION (AP_PASSWORD_LOCATION+AP_PASSWORD_LENGTH)
+#define SSID_LOCATION (AP_CHANNEL_LOCATION+AP_CHANNEL_LENGTH)
+#define PASSWORD_LOCATION (SSID_LOCATION+SSID_LENGTH)
+#define UDP_PORT_LOCATION (PASSWORD_LOCATION+PASSWORD_LENGTH)
+#define TCP_PORT_LOCATION (UDP_PORT_LOCATION+UDP_PORT_LENGTH)
+#define WEB_PORT_LOCATION (TCP_PORT_LOCATION+TCP_PORT_LENGTH)
+#define WEB_LOGIN_LOCATION (WEB_PORT_LOCATION+WEB_PORT_LENGTH)
+#define WEB_PASSWORD_LOCATION (WEB_LOGIN_LOCATION+WEB_LOGIN_LENGTH)
+#define BASE64_AUTH_LOCATION (WEB_PASSWORD_LOCATION+WEB_PASSWORD_LENGTH)
 
 // Define a software reset function
 // to restart when settings are changed
@@ -50,7 +65,7 @@ WebConfig::WebConfig(const char* appName, const char* defAPName, const char* def
 void WebConfig::Init(const char* appName, const char* defAPName, const char* defAPPass, bool doReset)
 {
 	// update the application name
-	strncpy(name, appName, 32);
+	strncpy(name, appName, AP_NAME_LENGTH);
 	startMillis = millis();
 
 	// try to load settings from the EEPROM;
@@ -59,8 +74,8 @@ void WebConfig::Init(const char* appName, const char* defAPName, const char* def
 	if (doReset || !LoadSettings())
 	{
 		isAP = true;
-		strncpy(apName, defAPName, 32);
-		strncpy(apPassword, defAPPass, 32);
+		strncpy(apName, defAPName, AP_NAME_LENGTH);
+		strncpy(apPassword, defAPPass, AP_PASSWORD_LENGTH);
 		apChannel = 10;
 		webPort = 0;
 		webLogin[0] = 0;
@@ -164,7 +179,7 @@ void WebConfig::ProcessHTTP()
 		int endLinePos = authInfo.indexOf("\r");
 		if (endLinePos == -1) { httpClient.print("Malformed request."); httpClient.stop(); return; }
 		authInfo = authInfo.substring(0, endLinePos);
-		if (strncmp(base64Auth, authInfo.c_str(), 64))
+		if (strncmp(base64Auth, authInfo.c_str(), BASE64_LENGTH))
 		{
 			s = "<h1><b>ACCESS DENIED</b></h1>";
 			httpClient.write(s.c_str(), s.length());
@@ -314,10 +329,10 @@ bool WebConfig::LoadSettings()
 	EEPROM.begin(512);
 
 	// first byte must be our signature: 0xAA
-	if (EEPROM.read(0) != 0xAA) { EEPROM.end(); return false; }
+	if (EEPROM.read(SIGNATURE_LOCATION) != 0xAA) { EEPROM.end(); return false; }
 
 	// second byte is the operation mode
-	byte val = EEPROM.read(1);
+	byte val = EEPROM.read(OPERATION_MODE_LOCATION);
 	if (val > 1) { EEPROM.end(); return false; }
 
 	// set the operation mode (0 == Router Client, 1 = AP)
@@ -335,17 +350,17 @@ bool WebConfig::LoadSettings()
 	// char webLogin[16];
 	// char webPassword[16];
 	// char base64Auth[64];
-	ReadString(apName, 2, 32);
-	ReadString(apPassword, 34, 32);
-	apChannel = EEPROM.read(66);
-	ReadString(ssid, 67, 32);
-	ReadString(password, 99, 32);
-	EEPROM.get(131, udpPort);
-	EEPROM.get(135, tcpPort);
-	EEPROM.get(139, webPort);
-	ReadString(webLogin, 143, 16);
-	ReadString(webPassword, 159, 16);
-	ReadString(base64Auth, 175, 64);
+	ReadString(apName, AP_NAME_LOCATION, AP_NAME_LENGTH);
+	ReadString(apPassword, AP_PASSWORD_LOCATION, AP_PASSWORD_LENGTH);
+	apChannel = EEPROM.read(AP_CHANNEL_LOCATION);
+	ReadString(ssid, SSID_LOCATION, SSID_LENGTH);
+	ReadString(password, PASSWORD_LOCATION, PASSWORD_LENGTH);
+	EEPROM.get(UDP_PORT_LOCATION, udpPort);
+	EEPROM.get(TCP_PORT_LOCATION, tcpPort);
+	EEPROM.get(WEB_PORT_LOCATION, webPort);
+	ReadString(webLogin, WEB_LOGIN_LOCATION, WEB_LOGIN_LENGTH);
+	ReadString(webPassword, WEB_PASSWORD_LOCATION, WEB_PASSWORD_LENGTH);
+	ReadString(base64Auth, BASE64_AUTH_LOCATION, BASE64_AUTH_LENGTH);
 
 	EEPROM.end();
 	return true;
@@ -358,10 +373,10 @@ bool WebConfig::SaveSettings()
 	EEPROM.begin(512);
 
 	// first byte is our signature: 0xAA
-	EEPROM.write(0, 0xAA);
+	EEPROM.write(SIGNATURE_LOCATION, 0xAA);
 
 	// second byte is the operation mode (0 == Router Client, 1 == AP)
-	EEPROM.write(1, (isAP ? 1 : 0));
+	EEPROM.write(OPERATION_MODE_LOCATION, (isAP ? 1 : 0));
 
 	// write other settings
 	// char apName[32]
@@ -375,17 +390,17 @@ bool WebConfig::SaveSettings()
 	// char webLogin[16];
 	// char webPassword[16];
 	// char base64Auth[64];
-	WriteString(apName, 2, 32);
-	WriteString(apPassword, 34, 32);
-	EEPROM.write(66, apChannel);
-	WriteString(ssid, 67, 32);
-	WriteString(password, 99, 32);
-	EEPROM.put(131, udpPort);
-	EEPROM.put(135, tcpPort);
-	EEPROM.put(139, webPort);
-	WriteString(webLogin, 143, 16);
-	WriteString(webPassword, 159, 16);
-	WriteString(base64Auth, 175, 64);
+	WriteString(apName, AP_NAME_LOCATION, AP_NAME_LENGTH);
+	WriteString(apPassword, AP_PASSWORD_LOCATION, AP_PASSWORD_LENGTH);
+	EEPROM.write(AP_CHANNEL_LOCATION, apChannel);
+	WriteString(ssid, SSID_LOCATION, SSID_LENGTH);
+	WriteString(password, PASSWORD_LOCATION, PASSWORD_LENGTH);
+	EEPROM.put(UDP_PORT_LOCATION, udpPort);
+	EEPROM.put(TCP_PORT_LOCATION, tcpPort);
+	EEPROM.put(WEB_PORT_LOCATION, webPort);
+	WriteString(webLogin, WEB_LOGIN_LOCATION, WEB_LOGIN_LENGTH);
+	WriteString(webPassword, WEB_PASSWORD_LOCATION, WEB_PASSWORD_LENGTH);
+	WriteString(base64Auth, BASE64_AUTH_LOCATION, BASE64_AUTH_LENGTH);
 
 	EEPROM.commit();
 	return true;
@@ -452,15 +467,15 @@ bool WebConfig::ProcessParms(String req)
 
 	// read settings
 	webPort = atoi(Token(&pPos, "&"));
-	strncpy(webLogin, Token(&pPos,"&"), 16);
-	strncpy(webPassword, Token(&pPos,"&"), 16);
-	strncpy(base64Auth, Token(&pPos,"&"), 64);
-	isAP = (atoi(Token(&pPos, "&")) == 1);                      // isAP
-	strncpy(apName, Token(&pPos, "&"), 32);                     // apName
-	strncpy(apPassword, Token(&pPos, "&"), 32);                 // apPassword
+	strncpy(webLogin, Token(&pPos,"&"), WEB_LOGIN_LENGTH);
+	strncpy(webPassword, Token(&pPos,"&"), WEB_PASSWORD_LENGTH);
+	strncpy(base64Auth, Token(&pPos,"&"), BASE64_AUTH_LENGTH);
+	isAP = (atoi(Token(&pPos, "&")) == OPERATION_MODE_LENGTH);                      // isAP
+	strncpy(apName, Token(&pPos, "&"), AP_NAME_LENGTH);                     // apName
+	strncpy(apPassword, Token(&pPos, "&"), AP_PASSWORD_LENGTH);                 // apPassword
 	apChannel = (byte)atoi(Token(&pPos,"&"));                   // apChannel
-	strncpy(ssid, Token(&pPos,"&"), 32);                        // router ssid
-	strncpy(password, Token(&pPos,"&"), 32);                    // router password
+	strncpy(ssid, Token(&pPos,"&"), SSID_LENGTH);                        // router ssid
+	strncpy(password, Token(&pPos,"&"), PASSWORD_LENGTH);                    // router password
 	udpPort = atoi(Token(&pPos,"&"));                           // udp port
 	tcpPort = atoi(Token(&pPos,"&"));                           // tcp port
 
@@ -473,4 +488,46 @@ bool WebConfig::ProcessParms(String req)
 	// indicate that parameters were updated
 	return true;
 }
+
+class WebConfigNonvolatileStorageClass
+{
+	public:
+
+        char read(short pos)
+        {
+            EEPROM.read(pos);
+        }
+
+        void write(short pos, char value)
+        {
+            EEPROM.write(pos, value);
+        }
+
+        void begin(int size)
+        {
+            EEPROM.begin(size);
+        }
+
+        int end()
+        {
+            return EEPROM.end();
+        }
+
+        void get(int location, char* address)
+        {
+            EEPROM.get(location, address);
+        }
+
+        void put(int location, char* address)
+        {
+            EEPROM.put(location, address);
+        }
+
+        void commit()
+        {
+            EEPROM.commit();
+        }
+}
+
+static WebConfigNonvolatileStorageClass WebConfigNonvolatileStorage
 
